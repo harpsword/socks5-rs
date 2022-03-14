@@ -8,6 +8,7 @@ use std::time::Duration;
 use std::{vec, thread};
 
 use bytes::{BytesMut, Buf};
+use num_enum::{TryFromPrimitive, IntoPrimitive, TryFromPrimitiveError, FromPrimitive};
 
 trait ToByte {
     fn to_byte(&self) -> u8;
@@ -31,6 +32,9 @@ pub enum Socks5Error {
     ParseFailed, // 解析失败
 
     TransferFailed, // 流量传输失败
+
+    ParseValidationMethodError(TryFromPrimitiveError<ValidateMethod>),
+    ParseCmdTypeError(TryFromPrimitiveError<CmdType>),
 }
 
 impl From<IOError> for Socks5Error {
@@ -45,8 +49,21 @@ impl From<Utf8Error> for Socks5Error {
     }
 }
 
-#[derive(Debug)]
-enum ValidateMethod {
+impl From<TryFromPrimitiveError<ValidateMethod>> for Socks5Error {
+    fn from(e: TryFromPrimitiveError<ValidateMethod>) -> Self {
+        Socks5Error::ParseValidationMethodError(e)
+    }
+}
+
+impl From<TryFromPrimitiveError<CmdType>> for Socks5Error {
+    fn from(e: TryFromPrimitiveError<CmdType>) -> Self {
+        Socks5Error::ParseCmdTypeError(e)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, TryFromPrimitive, IntoPrimitive, Copy, Clone)]
+#[repr(u8)]
+pub enum ValidateMethod {
     NoAuth,
     GSSAPI,
     UserNamePassword,
@@ -54,22 +71,13 @@ enum ValidateMethod {
 
 impl ToByte for ValidateMethod {
     fn to_byte(&self) -> u8 {
-        match self {
-            ValidateMethod::NoAuth => 0,
-            ValidateMethod::GSSAPI => 1,
-            ValidateMethod::UserNamePassword => 2,
-        }
+        (*self).clone().into()
     }
 }
 
 impl FromBytes for ValidateMethod {
     fn from_bytes(d: &mut Cursor<&[u8]>) -> Result<Self, Socks5Error> where Self: Sized {
-        match get_u8(d)? {
-            0 => Ok(ValidateMethod::NoAuth),
-            1 => Ok(ValidateMethod::GSSAPI),
-            2 => Ok(ValidateMethod::UserNamePassword),
-            _ => Err(Socks5Error::ParseFailed),
-        }
+        Ok(Self::try_from_primitive(get_u8(d)?)?)
     }
 }
 
@@ -86,51 +94,31 @@ impl FromBytes for ValidateMethod {
 // 0x07 不支持的命令
 // 0x08 不支持的目标服务器地址类型
 // 0x09 - 0xFF 未分配
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq, Eq, FromPrimitive, IntoPrimitive, Copy, Clone)]
+#[repr(u8)]
 enum ResponseCode {
-    Success,
-    ProxyError,
-    NotPermitted,
-    NetworkError,
-    TargetNotReachable,
-    TargetReject,
-    TTLExpired,
-    NotSupportCmd,
-    NotSupportAddrType,
-    Others,
+    Success = 0,
+    ProxyError = 1,
+    NotPermitted = 2,
+    NetworkError = 3,
+    TargetNotReachable = 4,
+    TargetReject = 5,
+    TTLExpired = 6,
+    NotSupportCmd = 7,
+    NotSupportAddrType = 8,
+    #[num_enum(default)]
+    Others = 9,
 }
 
 impl ToByte for ResponseCode {
     fn to_byte(&self) -> u8 {
-        match self {
-            ResponseCode::Success => 0,
-            ResponseCode::ProxyError => 1,
-            ResponseCode::NotPermitted => 2,
-            ResponseCode::NetworkError => 3,
-            ResponseCode::TargetNotReachable => 4,
-            ResponseCode::TargetReject => 5,
-            ResponseCode::TTLExpired => 6,
-            ResponseCode::NotSupportCmd => 7,
-            ResponseCode::NotSupportAddrType => 8,
-            ResponseCode::Others => 9,
-        }
+        (*self).clone().into()
     }
 }
 
 impl FromBytes for ResponseCode {
     fn from_bytes(d: &mut Cursor<&[u8]>) -> Result<Self, Socks5Error> where Self: Sized {
-        match get_u8(d)? {
-            0 => Ok(ResponseCode::Success),
-            1 => Ok(ResponseCode::ProxyError),
-            2 => Ok(ResponseCode::NotPermitted),
-            3 => Ok(ResponseCode::NetworkError),
-            4 => Ok(ResponseCode::TargetNotReachable),
-            5 => Ok(ResponseCode::TargetReject),
-            6 => Ok(ResponseCode::TTLExpired),
-            7 => Ok(ResponseCode::NotSupportCmd),
-            8 => Ok(ResponseCode::NotSupportAddrType),
-            _ => Ok(ResponseCode::Others),
-        }
+        Ok(Self::from(get_u8(d)?))
     }
 }
 
@@ -138,31 +126,23 @@ impl FromBytes for ResponseCode {
 /// 0x01 CONNECT 连接上游服务器
 /// 0x02 BIND 绑定，客户端会接收来自代理服务器的链接，著名的FTP被动模式
 /// 0x03 UDP ASSOCIATE UDP中继
-#[derive(Debug)]
-enum CmdType {
-    CONNECT,
-    BIND,
-    UDP,
+#[derive(Debug, PartialEq, Eq, TryFromPrimitive, IntoPrimitive, Copy, Clone)]
+#[repr(u8)]
+pub enum CmdType {
+    CONNECT = 1,
+    BIND = 2,
+    UDP = 3,
 }
 
 impl ToByte for CmdType {
     fn to_byte(&self) -> u8 {
-        match self {
-            CmdType::CONNECT => 1,
-            CmdType::BIND => 2,
-            CmdType::UDP => 3,
-        }
+        (*self).clone().into()
     }
 }
 
 impl FromBytes for CmdType {
     fn from_bytes(d: &mut Cursor<&[u8]>) -> Result<Self, Socks5Error> where Self: Sized {
-        match get_u8(d)? {
-            1 => Ok(CmdType::CONNECT),
-            2 => Ok(CmdType::BIND),
-            3 => Ok(CmdType::UDP),
-            _ => Ok(CmdType::CONNECT),
-        }
+            Ok(Self::try_from_primitive(get_u8(d)?)?)
     }
 }
 
