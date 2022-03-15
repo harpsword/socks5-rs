@@ -9,3 +9,6 @@ edition = "2021"
 
 bytes = "1"
 num_enum = "0.5.7"
+log4rs = "1.0.0"
+log = "0.4.14"
+thiserror = "1.0.30"

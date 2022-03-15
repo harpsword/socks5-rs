@@ -53,19 +53,11 @@ impl Client {
             handler.join().unwrap();
         }
     }
-
-    // fn negotiate(&mut self) -> Result<(), Socks5Error> {
-    //     let req = NegotiationReq {
-    //         validate_methods: vec![ValidateMethod::NoAuth]
-    //     };
-    //     let req_bytes = &req.to_bytes()[..];
-    //     let _ = self.stream.write(req_bytes)?;
-    //     self.stream.flush()?;
-    //     Ok(())
-    // }
 }
 
 fn main() {
+    log4rs::init_file("src/config/client_log.yaml", Default::default()).unwrap();
+
     let addr: SocketAddrV4 = "127.0.0.1:8999".parse().unwrap();
     let client = Client::new(SocketAddr::V4(addr), 9999);
     client.run();
