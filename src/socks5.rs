@@ -7,7 +7,7 @@ use std::time::Duration;
 use std::{vec, thread};
 use thiserror::Error;
 
-use bytes::{BytesMut, Buf};
+use bytes::{Buf};
 use log::{info, trace, error};
 use num_enum::{TryFromPrimitive, IntoPrimitive, TryFromPrimitiveError, FromPrimitive};
 
@@ -383,7 +383,7 @@ impl Server {
         let negotiation_resp = NegotiationResp{
             support_method: ValidateMethod::NoAuth,
         };
-        let mut r = buf_writer.write(&negotiation_resp.to_bytes()).unwrap();
+        let r = buf_writer.write(&negotiation_resp.to_bytes()).unwrap();
         buf_writer.flush().unwrap();
         trace!("response write len: {}", r);
 
@@ -423,7 +423,7 @@ impl Server {
             let from = v.from.try_clone().unwrap();
             let to = v.to.try_clone().unwrap();
             handlers.push(thread::spawn( move || {
-                transfer(from, to);
+                _ = transfer(from, to);
             }));
         }
         

@@ -67,7 +67,7 @@ mod tests {
     fn exponent_grow() {
         let mut exponent = Exponent::new(1, 2.0, 10);
         let mut value: u64 = 1;
-        for i in 0..10 {
+        for _ in 0..10 {
             exponent.count();
             value = value * 2;
             assert_eq!(exponent.now(), value);
@@ -77,7 +77,7 @@ mod tests {
     #[test]
     fn exponent_terminate() {
         let mut exponent = Exponent::new(1, 1.0, 10);
-        for i in 0..9 {
+        for _ in 0..9 {
             exponent.count();
         }
         assert_eq!(exponent.terminate(), false);
@@ -88,11 +88,11 @@ mod tests {
     #[test]
     fn exponent_reset() {
         let mut exponent = Exponent::new(1, 1.0, 10);
-        for i in 0..6 {
+        for _ in 0..6 {
             exponent.count();
         }
         exponent.reset();
-        for i in 0..9 {
+        for _ in 0..9 {
             exponent.count();
         }
         assert_eq!(exponent.terminate(), false);

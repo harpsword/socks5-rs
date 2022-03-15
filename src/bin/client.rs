@@ -46,7 +46,7 @@ impl Client {
             let from = v.from.try_clone().unwrap();
             let to = v.to.try_clone().unwrap();
             handlers.push(thread::spawn( move || {
-                transfer(from, to);
+                _ = transfer(from, to);
             }));
         }
         for handler in handlers {
